@@ -75,3 +75,10 @@
     padding: 5px;
     margin: 5px;
   }
+
+  .success {
+    background: rgb(21, 99, 245);
+    color: #fff;
+    padding: 5px;
+    margin: 5px;
+  }

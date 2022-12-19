@@ -6,21 +6,42 @@ const msg = document.querySelector('.msg');
 
 Form.addEventListener('submit', onSubmit);
 
+
+async function sendFormData(name, email){
+    let params = JSON.stringify({'name': name, 'email': email});
+    console.log(params);
+    let response = await fetch('http://localhost:3500/newuser', {
+        method: 'POST',
+        headers: {
+            "Content-Type":  'application/json'
+        },
+        body: params
+    })
+    .then((response) => response)
+
+    // provide confirmation
+    if(response.status === 200) {
+        msg.classList.add('success');
+        msg.innerHTML = 'Thanks for joining!';
+        setTimeout(() => msg.remove(), 3000);
+    } else {
+        console.error('Error submitting form data');
+    }
+}
+
+
 function onSubmit(e) {
     e.preventDefault();
 
     if(nameInput.value === '' || emailInput.value === '') {
         msg.classList.add('error');
         msg.innerHTML = 'Both fields must be filled out';
-
         setTimeout(() => msg.remove(), 3000);
     } else {
-        console.log('success');
+        console.log(nameInput.value, emailInput.value);
         // validate email address
 
         // send back to server to update DB
-
-        // provide confirmation
-        
+        sendFormData(nameInput.value, emailInput.value);
     }
 }
