@@ -1,0 +1,29 @@
+{
+  "name": "intro-to-javascript",
+  "version": "1.0.0",
+  "description": "starting to learn javascript and front-end related tech.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server",
+    "dev": "nodemon server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cadenjohnson/Intro-to-Javascript.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cadenjohnson/Intro-to-Javascript/issues"
+  },
+  "homepage": "https://github.com/cadenjohnson/Intro-to-Javascript#readme",
+  "dependencies": {
+    "date-fns": "^2.29.3",
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
