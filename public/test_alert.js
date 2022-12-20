@@ -6,7 +6,7 @@ const msg = document.querySelector('.msg');
 
 Form.addEventListener('submit', onSubmit);
 
-
+// function for sending data to server
 async function sendFormData(name, email){
     let params = JSON.stringify({'name': name, 'email': email});
     console.log(params);
@@ -30,9 +30,9 @@ async function sendFormData(name, email){
 }
 
 
+// function for event listener
 function onSubmit(e) {
     e.preventDefault();
-
     if(nameInput.value === '' || emailInput.value === '') {
         msg.classList.add('error');
         msg.innerHTML = 'Both fields must be filled out';
@@ -43,5 +43,7 @@ function onSubmit(e) {
 
         // send back to server to update DB
         sendFormData(nameInput.value, emailInput.value);
+        nameInput.value = '';
+        emailInput.value = '';
     }
 }

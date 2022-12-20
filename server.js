@@ -36,17 +36,6 @@ const db = new sqlite3.Database('./spam_users.db', sqlite3.OPEN_READWRITE, (erro
 sql = `CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`;
 db.run(sql);
 
-// display entire database
-/*
-db.all(`SELECT * FROM users`, [], (err, rows) => {
-    if(err) {
-        console.error('Error creating new database');
-    }
-    rows.forEach((row) => {
-        console.log(row);
-    })
-});
-*/
 
 // first route for index
 app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify that starts with /, ends w / OR includes the whole shabang or without the file type
@@ -57,11 +46,38 @@ app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify t
 // post route for submitting entries
 app.post('/newuser', (req, res) => {
     // add new user to DB
-    let name = req.body.name
-    let email = req.body.email
-    db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+    let name = req.body.name;
+    let email = req.body.email;
+
+    db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
+        if(err) {
+            console.error('Error querying database');
+        }
+        if(row == undefined) {
+            db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+            console.log(`${name} added to database`);
+        } else {
+            console.warn('Email is already in DB');
+        }
+    });
+
     // respond with confirmation
     res.sendStatus(200);
+})
+
+
+// temp admin portal
+app.get('/adminadmin', (req, res) => {
+    // display entire database
+    db.all(`SELECT * FROM users`, [], (err, rows) => {
+        if(err) {
+            console.error('Error creating new database');
+        }
+        rows.forEach((row) => {
+            console.log(row);
+        })
+    });
+    res.send('Check server console for data');
 })
 
 
