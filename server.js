@@ -102,4 +102,44 @@ app.get('/*', (req, res) => {
     res.status(404).send('that page cannot be found');
 })
 
+
+//*********************************************************
+const cron = require("node-cron");
+const nodemailer = require("nodemailer");
+const cred = require("./credentials.json");
+
+// establish timing schedule
+cron.schedule("*/1 * * * *", function (target_email) {
+    // set server mail service
+    let mailTransporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: cred.mailer_email,
+            pass: cred.mailer_app_password
+        }
+    });
+
+    // set mail details
+    let mailParams = {
+        from: cred.mailer_email,
+        to: "caden82010101022h@hotmail.com",
+        subject: "Your Daily Spam!",
+        text: "We've been trying to reach you about your car's extended warrenty"
+    }
+
+    // send the mail and confirm
+    mailTransporter.sendMail(mailParams, function (err, data) {
+        if(err) {
+            console.log("error sending mail - ", err.message);
+        } else {
+            console.log("--------------------------");
+            console.log(`email successfully sent to ${target_email}`);
+        }
+    })
+});
+//*********************************************************
+
+
+
+
 app.listen(PORT, () => console.log(`Server is listening at localhost on port ${PORT}`));

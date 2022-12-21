@@ -1,15 +1,16 @@
 
 const cron = require("node-cron");
 const nodemailer = require("nodemailer");
+const cred = require("./credentials.json");
 
 // establish timing schedule
-cron.schedule("* * * * 0-6", function (target_email) {
+cron.schedule("0 5 * * 0-6", function (target_email) {
     // set server mail service
     let mailTransporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
             user: "<my-email>@gmail.com",
-            pass:"************"
+            pass: cred.mailer_app_password
         }
     });
 
