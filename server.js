@@ -67,17 +67,18 @@ app.post('/newuser', (req, res) => {
 
 
 // temp admin portal
-app.get('/adminadmin', (req, res) => {
+app.get('/adminpleaseonlytheadmin', (req, res) => {
     // display entire database
     db.all(`SELECT * FROM users`, [], (err, rows) => {
         if(err) {
             console.error('Error creating new database');
+            res.redirect(301, '/errorpage');
         }
         rows.forEach((row) => {
             console.log(row);
         })
+        res.send(rows);
     });
-    res.send('Check server console for data');
 })
 
 
@@ -99,16 +100,25 @@ app.get('/oldpage', (req, res) => {
 
 // covers all other get requests
 app.get('/*', (req, res) => {
-    res.status(404).send('that page cannot be found');
+    res.status(404).send("There's been an error");
 })
 
 
+//*********************************************************
+//code from mailer.js
 //*********************************************************
 const cron = require("node-cron");
 const nodemailer = require("nodemailer");
 const cred = require("./credentials.json");
 
+
 // establish timing schedule
+// * second(optional) * minute * hour * DOM * month * DOW
+// * every interval
+// X,Y allows multiple values
+// X-Y allows range of values
+// */X every of that value
+// (*) * * * * *
 cron.schedule("*/1 * * * *", function (target_email) {
     // set server mail service
     let mailTransporter = nodemailer.createTransport({
@@ -119,10 +129,39 @@ cron.schedule("*/1 * * * *", function (target_email) {
         }
     });
 
+    let user_emails_array = [];
+
+    // get list of emails
+    function getEmails() {
+        return new Promise((resolve, reject) => {
+            db.all(`SELECT email FROM users`, [], (err, rows) => {
+                let temp_emails = [];
+                if(err) {
+                    console.error('Error querying database');
+                }
+                if(rows != undefined) {
+                    rows.forEach((row) => {
+                        temp_emails.push(row.email);
+                    })
+                } else {
+                    console.warn('Database Empty: no users :(');
+                }
+                console.log(temp_emails);
+                resolve(temp_emails);
+            });
+        })
+    }
+
+    (async function(){
+        user_emails_array = await getEmails();
+    })()
+    console.log(user_emails_array);
+
+
     // set mail details
     let mailParams = {
         from: cred.mailer_email,
-        to: "caden82010101022h@hotmail.com",
+        to: cred.mailer_email,
         subject: "Your Daily Spam!",
         text: "We've been trying to reach you about your car's extended warrenty"
     }
