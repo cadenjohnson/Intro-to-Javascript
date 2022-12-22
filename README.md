@@ -9,3 +9,7 @@ npm run dev
 - for prod
 npm run start
 
+init
+install node js from website
+npm install
+npm update
