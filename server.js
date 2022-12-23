@@ -2,7 +2,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
-const { dirname } = require('path');
+const { dirname, resolve } = require('path');
 const path = require('path');
 const PORT = process.env.PORT || 3500;
 
@@ -105,11 +105,60 @@ app.get('/*', (req, res) => {
 
 
 //*********************************************************
-//code from mailer.js
+//code for email feature
 //*********************************************************
 const cron = require("node-cron");
 const nodemailer = require("nodemailer");
 const cred = require("./credentials.json");
+
+
+function sendMail(source, target) {
+    // set server mail service
+    let mailTransporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: cred.mailer_email,
+            pass: cred.mailer_app_password
+        }
+    });
+    // set mail details
+    let mailParams = {
+        from: source,
+        to: target,
+        subject: "Your Daily Spam!",
+        text: "We've been trying to reach you about your car's extended warrenty"
+    }
+    // send the mail and confirm
+    mailTransporter.sendMail(mailParams, function (err, data) {
+        if(err) {
+            console.log("error sending mail - ", err.message);
+        } else {
+            console.log("--------------------------");
+            console.log(`email successfully sent to ${target}`);
+        }
+    })
+}
+
+
+async function getEmails() {
+    return new Promise((resolve, reject) => {
+        console.log("walle");
+        db.all(`SELECT email FROM users`, [], (err, row) => {
+            if(err) {
+                console.log('Error querying database');
+                reject(err);
+            }
+            resolve(row);
+            console.log("func results = ", row);
+        })
+    })
+}
+
+
+async function execute_operation_mailman() {
+    await getEmails();
+    sendMail(cred.mailer_email, cred.mailer_email);
+}
 
 
 // establish timing schedule
@@ -119,63 +168,10 @@ const cred = require("./credentials.json");
 // X-Y allows range of values
 // */X every of that value
 // (*) * * * * *
-cron.schedule("*/1 * * * *", function (target_email) {
-    // set server mail service
-    let mailTransporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: cred.mailer_email,
-            pass: cred.mailer_app_password
-        }
-    });
-
-    let user_emails_array = [];
-
-    // get list of emails
-    function getEmails() {
-        return new Promise((resolve, reject) => {
-            db.all(`SELECT email FROM users`, [], (err, rows) => {
-                let temp_emails = [];
-                if(err) {
-                    console.error('Error querying database');
-                }
-                if(rows != undefined) {
-                    rows.forEach((row) => {
-                        temp_emails.push(row.email);
-                    })
-                } else {
-                    console.warn('Database Empty: no users :(');
-                }
-                console.log(temp_emails);
-                resolve(temp_emails);
-            });
-        })
-    }
-
-    (async function(){
-        user_emails_array = await getEmails();
-    })()
-    console.log(user_emails_array);
-
-
-    // set mail details
-    let mailParams = {
-        from: cred.mailer_email,
-        to: cred.mailer_email,
-        subject: "Your Daily Spam!",
-        text: "We've been trying to reach you about your car's extended warrenty"
-    }
-
-    // send the mail and confirm
-    mailTransporter.sendMail(mailParams, function (err, data) {
-        if(err) {
-            console.log("error sending mail - ", err.message);
-        } else {
-            console.log("--------------------------");
-            console.log(`email successfully sent to ${target_email}`);
-        }
-    })
+cron.schedule("1 * * * *", function () {
+    execute_operation_mailman()
 });
+
 //*********************************************************
 
 
