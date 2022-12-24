@@ -104,6 +104,11 @@ app.get('/*', (req, res) => {
 })
 
 
+function validateEmail(email) {
+    console.log("looks good to me");
+}
+
+
 //*********************************************************
 //code for email feature
 //*********************************************************
