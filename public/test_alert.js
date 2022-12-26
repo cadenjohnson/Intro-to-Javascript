@@ -10,7 +10,7 @@ Form.addEventListener('submit', onSubmit);
 async function sendFormData(name, email){
     let params = JSON.stringify({'name': name, 'email': email});
     console.log(params);
-    let response = await fetch('http://localhost:3500/newuser', {
+    let response = await fetch('http://127.0.0.1:3500', { // funky naming, make sure origin otherwise CORS errors will follow
         method: 'POST',
         headers: {
             "Content-Type":  'application/json'
@@ -24,8 +24,12 @@ async function sendFormData(name, email){
         msg.classList.add('success');
         msg.innerHTML = 'Thanks for joining!';
         setTimeout(() => msg.remove(), 3000);
+    } else if(response.status === 400){
+        msg.classList.add('error');
+        msg.innerHTML = 'Invalid Email. Try Again';
+        setTimeout(() => msg.remove(), 3000);
     } else {
-        console.error('Error submitting form data');
+        msg.innerHTML = 'Error submitting information';
     }
 }
 

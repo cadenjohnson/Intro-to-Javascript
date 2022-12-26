@@ -2,6 +2,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
+const emailValidator = require('deep-email-validator');
 const { dirname, resolve } = require('path');
 const path = require('path');
 const PORT = process.env.PORT || 3500;
@@ -33,8 +34,56 @@ const db = new sqlite3.Database('./spam_users.db', sqlite3.OPEN_READWRITE, (erro
 })
 
 // create table if necessary
-sql = `CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`;
-db.run(sql);
+db.run(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`);
+
+
+
+async function validateEmail(email) {
+    const {valid, reason, validators} =  await emailValidator.validate(email);
+    let regex = validators.regex.valid
+    let typo =  validators.typo.valid
+    let dispo = validators.disposable.valid
+    let mx = validators.mx.valid
+
+    if(regex===true && typo===true && dispo===true && mx===true) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+// database functions (need to be called asynchronously and awaited)
+async function getEmails() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT email FROM users`, [], (err, row) => {
+            if(err) {
+                console.log('Error querying database');
+                reject(err);
+            }
+            resolve(row);
+        })
+    })
+}
+
+
+async function getAll() {
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM users`, [], (err, rows) => {
+            if(err) {
+                console.log('Error querying database');
+                reject(err);
+            }
+            resolve(rows);
+            console.log("func results = ", rows);
+        })
+    })
+}
+
+
+async function insertItems(name, email) {
+    db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+}
 
 
 // first route for index
@@ -44,25 +93,30 @@ app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify t
 
 
 // post route for submitting entries
-app.post('/newuser', (req, res) => {
+// must post to origin to prevent CORS errors
+app.post('/', async (req, res) => {
     // add new user to DB
     let name = req.body.name;
     let email = req.body.email;
-
-    db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
-        if(err) {
-            console.error('Error querying database');
-        }
-        if(row == undefined) {
-            db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
-            console.log(`${name} added to database`);
-        } else {
-            console.warn('Email is already in DB');
-        }
-    });
-
-    // respond with confirmation
-    res.sendStatus(200);
+    let validcheck = await validateEmail(email);
+    if(validcheck === true) {
+        db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
+            if(err) {
+                console.error('Error querying database');
+            }
+            if(row == undefined) {
+                db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+                console.log(`${name} added to database`);
+            } else {
+                console.warn('Email is already in DB');
+            }
+        });
+        // respond with confirmation
+        res.sendStatus(200);
+    } else {
+        console.log("error: invalid email address");
+        res.sendStatus(400);
+    }
 })
 
 
@@ -104,10 +158,6 @@ app.get('/*', (req, res) => {
 })
 
 
-function validateEmail(email) {
-    console.log("looks good to me");
-}
-
 
 //*********************************************************
 //code for email feature
@@ -145,24 +195,10 @@ function sendMail(source, target) {
 }
 
 
-async function getEmails() {
-    return new Promise((resolve, reject) => {
-        console.log("walle");
-        db.all(`SELECT email FROM users`, [], (err, row) => {
-            if(err) {
-                console.log('Error querying database');
-                reject(err);
-            }
-            resolve(row);
-            console.log("func results = ", row);
-        })
-    })
-}
-
-
 async function execute_operation_mailman() {
-    await getEmails();
-    sendMail(cred.mailer_email, cred.mailer_email);
+    temp = await getEmails();
+    //sendMail(cred.mailer_email, cred.mailer_email);
+    app.listen(PORT, () => console.log(`Server is listening at localhost on port ${PORT}`));
 }
 
 
@@ -174,12 +210,9 @@ async function execute_operation_mailman() {
 // */X every of that value
 // (*) * * * * *
 cron.schedule("1 * * * *", function () {
-    execute_operation_mailman()
+    console.log("hello world");
 });
-
 //*********************************************************
 
 
-
-
-app.listen(PORT, () => console.log(`Server is listening at localhost on port ${PORT}`));
+execute_operation_mailman();
