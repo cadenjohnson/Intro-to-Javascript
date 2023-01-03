@@ -3,9 +3,10 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const emailValidator = require('deep-email-validator');
-const { dirname, resolve } = require('path');
 const path = require('path');
+const readline = require('readline');
 const PORT = process.env.PORT || 3500;
+const HOST = "127.0.0.1";
 
 const app = express();
 
@@ -53,6 +54,31 @@ async function validateEmail(email) {
 }
 
 
+async function formulateEmailContent() {
+    return new Promise((resolve, reject) => {
+        fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
+            if(err){
+                console.log("error retrieving email content");
+                reject(err);
+            } else {
+                let subject = '';
+                let body = '';
+                let lines = data.split('\n');
+                lines.forEach(function (line, i, array) {
+                    if(i===0) {
+                        line = line.replace(/(\r\n|\n|\r)/gm, "");
+                        subject = line;
+                    } else {
+                        body+=line;
+                    }
+                })
+                resolve([subject, body]);
+            }
+        })
+    })
+}
+
+
 // database functions (need to be called asynchronously and awaited)
 async function getEmails() {
     return new Promise((resolve, reject) => {
@@ -61,27 +87,30 @@ async function getEmails() {
                 console.log('Error querying database');
                 reject(err);
             }
-            resolve(row);
+            let emailArray = []
+            row.forEach(function (email, i, array) {
+                emailArray.push(email.email)
+            })
+            resolve(emailArray);
         })
     })
 }
 
 
-async function getAll() {
+async function getDBdata() {
     return new Promise((resolve, reject) => {
         db.all(`SELECT * FROM users`, [], (err, rows) => {
             if(err) {
-                console.log('Error querying database');
+                console.error('Error retrieving data');
                 reject(err);
             }
             resolve(rows);
-            console.log("func results = ", rows);
-        })
+        });
     })
 }
 
 
-async function insertItems(name, email) {
+function insertItems(name, email) {
     db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
 }
 
@@ -105,7 +134,7 @@ app.post('/', async (req, res) => {
                 console.error('Error querying database');
             }
             if(row == undefined) {
-                db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+                insertItems(name, email);
                 console.log(`${name} added to database`);
             } else {
                 console.warn('Email is already in DB');
@@ -121,11 +150,16 @@ app.post('/', async (req, res) => {
 
 
 // temp admin portal
-app.get('/adminpleaseonlytheadmin', (req, res) => {
+app.get('/adminpleaseonlytheadmin', async (req, res) => {
     // display entire database
+    res.send(await getDBdata());
+})
+
+
+app.post('/adminpleaseonlytheadmin', async (req, res) => {
     db.all(`SELECT * FROM users`, [], (err, rows) => {
         if(err) {
-            console.error('Error creating new database');
+            console.error('Error retrieving data');
             res.redirect(301, '/errorpage');
         }
         rows.forEach((row) => {
@@ -134,6 +168,8 @@ app.get('/adminpleaseonlytheadmin', (req, res) => {
         res.send(rows);
     });
 })
+
+
 
 
 // test portfolio site
@@ -167,7 +203,7 @@ const nodemailer = require("nodemailer");
 const cred = require("./credentials.json");
 
 
-function sendMail(source, target) {
+function sendEmails(source, emails, subject, body) {
     // set server mail service
     let mailTransporter = nodemailer.createTransport({
         service: "gmail",
@@ -176,29 +212,24 @@ function sendMail(source, target) {
             pass: cred.mailer_app_password
         }
     });
-    // set mail details
-    let mailParams = {
-        from: source,
-        to: target,
-        subject: "Your Daily Spam!",
-        text: "We've been trying to reach you about your car's extended warrenty"
-    }
     // send the mail and confirm
-    mailTransporter.sendMail(mailParams, function (err, data) {
-        if(err) {
-            console.log("error sending mail - ", err.message);
-        } else {
-            console.log("--------------------------");
-            console.log(`email successfully sent to ${target}`);
+    emails.forEach(function (targetemail, i, array) {
+        let mailParams = {
+            from: source,
+            to: targetemail,
+            subject: "Your Daily Spam!",
+            text: "We've been trying to reach you about your car's extended warrenty"
         }
+
+        mailTransporter.sendMail(mailParams, function (err, data) {
+            if(err) {
+                console.log("error sending mail - ", err.message);
+            } else {
+                console.log("--------------------------");
+                console.log(`email successfully sent to ${target}`);
+            }
+        })
     })
-}
-
-
-async function execute_operation_mailman() {
-    temp = await getEmails();
-    //sendMail(cred.mailer_email, cred.mailer_email);
-    app.listen(PORT, () => console.log(`Server is listening at localhost on port ${PORT}`));
 }
 
 
@@ -209,10 +240,15 @@ async function execute_operation_mailman() {
 // X-Y allows range of values
 // */X every of that value
 // (*) * * * * *
-cron.schedule("1 * * * *", function () {
-    console.log("hello world");
+cron.schedule("*/1 * * * *", async function () {
+    console.log("sending emails...");
+    let emails = await getEmails();
+    let content = await formulateEmailContent();
+    //sendEmails(cred.mailer_email, emails, content[0], content[1]);
+    console.log("emails successfully sent")
 });
 //*********************************************************
 
 
-execute_operation_mailman();
+app.listen(PORT, () => console.log(`Server is listening at ${HOST} on port ${PORT}`));
+

@@ -4,9 +4,16 @@
     box-sizing: border-box;
   }
   
+html {
+  height: 100%;
+}
+
   body {
     font-family: Arial, Helvetica, sans-serif;
+    height: 100%;
     line-height: 1.6;
+    background-color:rgb(80, 171, 255);
+    background-image: linear-gradient(to bottom right, rgb(75, 204, 255), rgb(5, 142, 255));
   }
   
   ul {
@@ -20,21 +27,26 @@
   }
   
   header {
-    background: #f4f4f4;
+    background: #dfdfdfec;
     padding: 1rem;
     text-align: center;
+    width: 80%;
+    margin: 0 auto;
+    border-radius: 0 0 20px 20px;
   }
   
+  .grayscale { filter: grayscale(100%); }
+
   .container {
     margin: auto;
-    width: 500px;
     overflow: auto;
     padding: 3rem 2rem;
   }
   
   #my-form {
     padding: 2rem;
-    background: #f4f4f4;
+    background: #dfdfdfec;
+    border-radius: 20px;
   }
   
   #my-form label {
@@ -58,6 +70,7 @@
     color: #fff;
     border-radius: 5px;
     margin: 5px 0;
+    font-size: 18px;
   }
   
   .btn:hover {
