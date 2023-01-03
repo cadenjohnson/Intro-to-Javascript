@@ -4,7 +4,7 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const emailValidator = require('deep-email-validator');
 const path = require('path');
-const readline = require('readline');
+const logger = require('./logger')
 const PORT = process.env.PORT || 3500;
 const HOST = "127.0.0.1";
 
@@ -22,7 +22,7 @@ if(!fs.existsSync('./spam_users.db')) {
     // if not, create
     fs.writeFile('./spam_users.db', '', (error) => {
         if(error != null) {
-            console.error(error);
+            logger.error(error);
         }
     });
 }
@@ -30,7 +30,7 @@ if(!fs.existsSync('./spam_users.db')) {
 // connect to db
 const db = new sqlite3.Database('./spam_users.db', sqlite3.OPEN_READWRITE, (error) => {
     if(error) {
-        console.error('Error creating new database');
+        logger.error(`Error creating new database - ${error}`);
     }
 })
 
@@ -58,7 +58,7 @@ async function formulateEmailContent() {
     return new Promise((resolve, reject) => {
         fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
             if(err){
-                console.log("error retrieving email content");
+                logger.error(`error retrieving email content - ${err}`);
                 reject(err);
             } else {
                 let subject = '';
@@ -84,7 +84,7 @@ async function getEmails() {
     return new Promise((resolve, reject) => {
         db.all(`SELECT email FROM users`, [], (err, row) => {
             if(err) {
-                console.log('Error querying database');
+                logger.error(`Error querying database - ${err}`);
                 reject(err);
             }
             let emailArray = []
@@ -101,7 +101,7 @@ async function getDBdata() {
     return new Promise((resolve, reject) => {
         db.all(`SELECT * FROM users`, [], (err, rows) => {
             if(err) {
-                console.error('Error retrieving data');
+                logger.error(`Error retrieving data - ${err}`);
                 reject(err);
             }
             resolve(rows);
@@ -131,19 +131,20 @@ app.post('/', async (req, res) => {
     if(validcheck === true) {
         db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
             if(err) {
-                console.error('Error querying database');
+                logger.error(`Error querying database - ${err}`);
             }
             if(row == undefined) {
                 insertItems(name, email);
-                console.log(`${name} added to database`);
+                logger.info(`${name} added to database`);
             } else {
-                console.warn('Email is already in DB');
+                // notify invalid email
+                res.sendStatus(400);
             }
         });
         // respond with confirmation
         res.sendStatus(200);
     } else {
-        console.log("error: invalid email address");
+        // notify invalid email
         res.sendStatus(400);
     }
 })
@@ -157,19 +158,8 @@ app.get('/adminpleaseonlytheadmin', async (req, res) => {
 
 
 app.post('/adminpleaseonlytheadmin', async (req, res) => {
-    db.all(`SELECT * FROM users`, [], (err, rows) => {
-        if(err) {
-            console.error('Error retrieving data');
-            res.redirect(301, '/errorpage');
-        }
-        rows.forEach((row) => {
-            console.log(row);
-        })
-        res.send(rows);
-    });
+    res.redirect(301, '/newpage');
 })
-
-
 
 
 // test portfolio site
@@ -203,7 +193,7 @@ const nodemailer = require("nodemailer");
 const cred = require("./credentials.json");
 
 
-function sendEmails(source, emails, subject, body) {
+async function sendEmails(source, emails, subject, body) {
     // set server mail service
     let mailTransporter = nodemailer.createTransport({
         service: "gmail",
@@ -212,21 +202,21 @@ function sendEmails(source, emails, subject, body) {
             pass: cred.mailer_app_password
         }
     });
+
+    var content = await formulateEmailContent();
+
     // send the mail and confirm
     emails.forEach(function (targetemail, i, array) {
         let mailParams = {
             from: source,
             to: targetemail,
-            subject: "Your Daily Spam!",
-            text: "We've been trying to reach you about your car's extended warrenty"
-        }
+            subject: content[0],
+            text: content[1]
+        };
 
         mailTransporter.sendMail(mailParams, function (err, data) {
             if(err) {
-                console.log("error sending mail - ", err.message);
-            } else {
-                console.log("--------------------------");
-                console.log(`email successfully sent to ${target}`);
+                logger.error(`error sending email - ${err.message}`);
             }
         })
     })
@@ -241,11 +231,10 @@ function sendEmails(source, emails, subject, body) {
 // */X every of that value
 // (*) * * * * *
 cron.schedule("*/1 * * * *", async function () {
-    console.log("sending emails...");
     let emails = await getEmails();
     let content = await formulateEmailContent();
-    //sendEmails(cred.mailer_email, emails, content[0], content[1]);
-    console.log("emails successfully sent")
+    sendEmails(cred.mailer_email, emails, content[0], content[1]);
+    logger.info(`${emails.length} emails successfully sent`);
 });
 //*********************************************************
 
