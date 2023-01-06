@@ -1,12 +1,13 @@
 
+const HOST = "127.0.0.1"; // need way to simplify for prod and implement on client js
+const PORT = process.env.PORT || 3500;
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const emailValidator = require('deep-email-validator');
 const path = require('path');
 const logger = require('./logger')
-const PORT = process.env.PORT || 3500;
-const HOST = "127.0.0.1";
 
 const app = express();
 

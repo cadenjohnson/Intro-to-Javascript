@@ -13,3 +13,7 @@ init
 install node js from website
 npm install
 npm update
+
+- Necessary Environment Variables:
+mailer_email -----> email address of account used to send the emails
+mailer_app_password ------> app password given by the service for that account
