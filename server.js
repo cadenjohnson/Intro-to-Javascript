@@ -5,9 +5,13 @@ const PORT = process.env.PORT || 3500;
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
-const emailValidator = require('deep-email-validator');
 const path = require('path');
-const logger = require('./logger')
+const logger = require('./utils/logger');
+const cron = require("node-cron");
+const cred = require("./credentials.json");
+const get_content = require("./utils/get_content");
+const send_mail = require("./utils/send_mail");
+const validate_email = require("./utils/validate_email");
 
 const app = express();
 
@@ -17,11 +21,10 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '/public')));
 
 
-// Init database
-// check if db file exists
-if(!fs.existsSync('./spam_users.db')) {
+// Init database & check if db file exists
+if(!fs.existsSync('./users.db')) {
     // if not, create
-    fs.writeFile('./spam_users.db', '', (error) => {
+    fs.writeFile('./users.db', '', (error) => {
         if(error != null) {
             logger.error(error);
         }
@@ -29,7 +32,7 @@ if(!fs.existsSync('./spam_users.db')) {
 }
 
 // connect to db
-const db = new sqlite3.Database('./spam_users.db', sqlite3.OPEN_READWRITE, (error) => {
+const db = new sqlite3.Database('./users.db', sqlite3.OPEN_READWRITE, (error) => {
     if(error) {
         logger.error(`Error creating new database - ${error}`);
     }
@@ -37,47 +40,6 @@ const db = new sqlite3.Database('./spam_users.db', sqlite3.OPEN_READWRITE, (erro
 
 // create table if necessary
 db.run(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`);
-
-
-
-async function validateEmail(email) {
-    const {valid, reason, validators} =  await emailValidator.validate(email);
-    let regex = validators.regex.valid
-    let typo =  validators.typo.valid
-    let dispo = validators.disposable.valid
-    let mx = validators.mx.valid
-
-    if(regex===true && typo===true && dispo===true && mx===true) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-
-async function formulateEmailContent() {
-    return new Promise((resolve, reject) => {
-        fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
-            if(err){
-                logger.error(`error retrieving email content - ${err}`);
-                reject(err);
-            } else {
-                let subject = '';
-                let body = '';
-                let lines = data.split('\n');
-                lines.forEach(function (line, i, array) {
-                    if(i===0) {
-                        line = line.replace(/(\r\n|\n|\r)/gm, "");
-                        subject = line;
-                    } else {
-                        body+=line;
-                    }
-                })
-                resolve([subject, body]);
-            }
-        })
-    })
-}
 
 
 // database functions (need to be called asynchronously and awaited)
@@ -128,7 +90,7 @@ app.post('/', async (req, res) => {
     // add new user to DB
     let name = req.body.name;
     let email = req.body.email;
-    let validcheck = await validateEmail(email);
+    let validcheck = await validate_email(email);
     if(validcheck === true) {
         db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
             if(err) {
@@ -186,44 +148,6 @@ app.get('/*', (req, res) => {
 
 
 
-//*********************************************************
-//code for email feature
-//*********************************************************
-const cron = require("node-cron");
-const nodemailer = require("nodemailer");
-const cred = require("./credentials.json");
-
-
-async function sendEmails(source, emails, subject, body) {
-    // set server mail service
-    let mailTransporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: cred.mailer_email,
-            pass: cred.mailer_app_password
-        }
-    });
-
-    var content = await formulateEmailContent();
-
-    // send the mail and confirm
-    emails.forEach(function (targetemail, i, array) {
-        let mailParams = {
-            from: source,
-            to: targetemail,
-            subject: content[0],
-            text: content[1]
-        };
-
-        mailTransporter.sendMail(mailParams, function (err, data) {
-            if(err) {
-                logger.error(`error sending email - ${err.message}`);
-            }
-        })
-    })
-}
-
-
 // establish timing schedule
 // * second(optional) * minute * hour * DOM * month * DOW
 // * every interval
@@ -233,12 +157,14 @@ async function sendEmails(source, emails, subject, body) {
 // (*) * * * * *
 cron.schedule("*/1 * * * *", async function () {
     let emails = await getEmails();
-    let content = await formulateEmailContent();
-    sendEmails(cred.mailer_email, emails, content[0], content[1]);
-    logger.info(`${emails.length} emails successfully sent`);
+    if(emails.length > 0) {
+        let content = await get_content();
+        //send_mail(cred.mailer_email, emails, content[0], content[1]);
+        logger.info(`${emails.length} emails successfully sent`);
+    } else {
+        logger.warn("No active users");
+    }
 });
-//*********************************************************
 
 
 app.listen(PORT, () => console.log(`Server is listening at ${HOST} on port ${PORT}`));
-
