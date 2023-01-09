@@ -1,4 +1,4 @@
 node_modules
-spam_users.db
+users.db
 credentials.json
 logs/server.log
