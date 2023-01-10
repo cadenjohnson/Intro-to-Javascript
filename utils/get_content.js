@@ -18,9 +18,9 @@ module.exports = async function formulateEmailContent(host_address, acct_id) {
                         subject = line;
                     } else {
                         if(line.includes("##########")) {
-                            line = line.replace("##########", `${host_address}/unsubscribe?id=${acct_id}`);
+                            line = line.replace("##########", `${host_address}unsubscribe?id=${acct_id}`);
                         }
-                        body+=line;
+                        body+=(line+"\n");
                     }
                 })
                 resolve([subject, body]);
