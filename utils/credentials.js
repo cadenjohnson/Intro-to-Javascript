@@ -26,7 +26,7 @@ exports.mailer_app_password = function(){
 
 exports.host_address = function(){
     if(process.env.host_address) {
-        return process.host_address;
+        return process.env.host_address;
     } else {
         return cred.host_address;
     }

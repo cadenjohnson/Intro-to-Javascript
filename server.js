@@ -120,7 +120,7 @@ app.get('/*', (req, res) => {
 // X-Y allows range of values
 // */X every of that value
 // (*) * * * * *
-cron.schedule("*/1 * * * *", async function () {
+cron.schedule("* * * * */1", async function () {
     let emails = await db_functions.getEmails(db);
     if(emails.length > 0) {
         await send_mail(db, cred.mailer_email(), emails);
