@@ -1,5 +1,10 @@
 
-const cred = require("../credentials.json");
+const fs = require('fs');
+
+if(fs.existsSync('../credentials.json')) {
+    const cred = require("../credentials.json");
+}
+
 
 exports.mailer_email = function(){
     if(process.env.mailer_email) {
