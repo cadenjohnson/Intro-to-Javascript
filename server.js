@@ -123,8 +123,8 @@ app.get('/*', (req, res) => {
 cron.schedule("*/1 * * * *", async function () {
     let emails = await db_functions.getEmails(db);
     if(emails.length > 0) {
-        //await send_mail(db, cred.mailer_email(), emails);
-        l//ogger.info(`${emails.length} emails successfully sent`);
+        await send_mail(db, cred.mailer_email(), emails);
+        logger.info(`${emails.length} emails successfully sent`);
     } else {
         logger.warn("No active users");
     }
