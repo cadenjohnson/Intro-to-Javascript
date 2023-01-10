@@ -1,5 +1,9 @@
 
-const ORIGIN = 'http://127.0.0.1:3500' // funky naming, make sure origin otherwise CORS errors will follow
+if(process.env.host_address) {
+    const ORIGIN = process.env.host_address;
+} else {
+    const ORIGIN = 'http://127.0.0.1:3500' // funky naming, make sure origin otherwise CORS errors will follow
+}
 
 const Form = document.querySelector('#my-form');
 const nameInput = document.querySelector('#name');

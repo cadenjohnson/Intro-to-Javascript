@@ -2,7 +2,7 @@
 const fs = require('fs');
 const logger = require('./logger');
 
-module.exports = async function formulateEmailContent() {
+module.exports = async function formulateEmailContent(host_address, acct_id) {
     return new Promise((resolve, reject) => {
         fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
             if(err){
@@ -18,8 +18,7 @@ module.exports = async function formulateEmailContent() {
                         subject = line;
                     } else {
                         if(line.includes("##########")) {
-                            line = line.replace("##########", "url to endpoint for account removal");
-                            console.log(line);
+                            line = line.replace("##########", `${host_address}/unsubscribe?id=${acct_id}`);
                         }
                         body+=line;
                     }

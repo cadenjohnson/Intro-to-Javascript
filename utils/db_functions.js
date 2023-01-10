@@ -1,9 +1,8 @@
 
-const logger = require('./utils/logger');
-const sqlite3 = require('sqlite3').verbose();
+const logger = require('./logger');
 
 
-async function getEmails() {
+exports.getEmails = async function(db) {
     return new Promise((resolve, reject) => {
         db.all(`SELECT email FROM users`, [], (err, row) => {
             if(err) {
@@ -20,7 +19,7 @@ async function getEmails() {
 }
 
 
-async function getAlldata() {
+exports.getAlldata = async function(db) {
     return new Promise((resolve, reject) => {
         db.all(`SELECT * FROM users`, [], (err, rows) => {
             if(err) {
@@ -33,11 +32,11 @@ async function getAlldata() {
 }
 
 
-async function getID(email) {
+exports.getID = async function(db, email) {
     return new Promise((resolve, reject) => {
         db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
             if(err) {
-                logger.error(`Error querying database for id - ${err}`);
+                logger.error(`Error retrieving id - ${err}`);
                 reject(err);
             }
             resolve(row);
@@ -46,6 +45,11 @@ async function getID(email) {
 }
 
 
-function insertItems(name, email) {
+exports.insertItems = function(db, name, email) {
     db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
+}
+
+
+exports.removeAcct = function(db, id) {
+    db.run('DELETE FROM users WHERE id = ?', id);
 }

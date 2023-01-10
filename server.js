@@ -1,5 +1,5 @@
 
-const HOST = "127.0.0.1"; // need way to simplify for prod and implement on client js
+const HOST = process.env.host_address || "127.0.0.1"; // need way to simplify for prod and implement on client js
 const PORT = process.env.PORT || 3500;
 
 const express = require('express');
@@ -8,10 +8,11 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
 const cron = require("node-cron");
-const cred = require("./credentials.json");
+const cred = require("./utils/credentials.js");
 const get_content = require("./utils/get_content");
 const send_mail = require("./utils/send_mail");
 const validate_email = require("./utils/validate_email");
+const db_functions = require("./utils/db_functions");
 
 const app = express();
 
@@ -42,41 +43,6 @@ const db = new sqlite3.Database('./users.db', sqlite3.OPEN_READWRITE, (error) =>
 db.run(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`);
 
 
-// database functions (need to be called asynchronously and awaited)
-async function getEmails() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT email FROM users`, [], (err, row) => {
-            if(err) {
-                logger.error(`Error querying database - ${err}`);
-                reject(err);
-            }
-            let emailArray = []
-            row.forEach(function (email, i, array) {
-                emailArray.push(email.email)
-            })
-            resolve(emailArray);
-        })
-    })
-}
-
-
-async function getDBdata() {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT * FROM users`, [], (err, rows) => {
-            if(err) {
-                logger.error(`Error retrieving data - ${err}`);
-                reject(err);
-            }
-            resolve(rows);
-        });
-    })
-}
-
-
-function insertItems(name, email) {
-    db.run(`INSERT INTO users(name, email) VALUES (?,?)`,[name, email]);
-}
-
 
 // first route for index
 app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify that starts with /, ends w / OR includes the whole shabang or without the file type
@@ -84,39 +50,38 @@ app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify t
 })
 
 
-// post route for submitting entries
-// must post to origin to prevent CORS errors
+// post route for submitting new users
 app.post('/', async (req, res) => {
-    // add new user to DB
     let name = req.body.name;
     let email = req.body.email;
     let validcheck = await validate_email(email);
     if(validcheck === true) {
-        db.get(`SELECT id FROM users WHERE email = ?`, email, (err, row) => {
-            if(err) {
-                logger.error(`Error querying database - ${err}`);
-            }
-            if(row == undefined) {
-                insertItems(name, email);
-                logger.info(`${name} added to database`);
-            } else {
-                // notify invalid email
-                res.sendStatus(400);
-            }
-        });
-        // respond with confirmation
-        res.sendStatus(200);
+        let results = await db_functions.getID(db, email);
+        if(results == undefined) {
+            db_functions.insertItems(db, name, email);
+            logger.info(`${name} added to database`);
+            res.sendStatus(200);
+        } else {
+            res.sendStatus(400);
+        }
     } else {
-        // notify invalid email
         res.sendStatus(400);
     }
 })
 
 
+// route for removing account from database
+app.get('/unsubscribe', (req, res) => {
+    let acct_id = req.query.id;
+    db_functions.removeAcct(db, acct_id);
+    logger.info(`Account #${acct_id} removed from database`);
+    res.sendFile(path.join(__dirname, 'html', 'unsubscribed.html'));
+})
+
+
 // temp admin portal
 app.get('/adminpleaseonlytheadmin', async (req, res) => {
-    // display entire database
-    res.send(await getDBdata());
+    res.send(await db_functions.getAlldata(db));
 })
 
 
@@ -156,11 +121,10 @@ app.get('/*', (req, res) => {
 // */X every of that value
 // (*) * * * * *
 cron.schedule("*/1 * * * *", async function () {
-    let emails = await getEmails();
+    let emails = await db_functions.getEmails(db);
     if(emails.length > 0) {
-        let content = await get_content();
-        //send_mail(cred.mailer_email, emails, content[0], content[1]);
-        logger.info(`${emails.length} emails successfully sent`);
+        //await send_mail(db, cred.mailer_email(), emails);
+        l//ogger.info(`${emails.length} emails successfully sent`);
     } else {
         logger.warn("No active users");
     }
