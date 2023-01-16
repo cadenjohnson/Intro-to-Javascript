@@ -129,7 +129,7 @@ app.get('/*', (req, res) => {
 // X-Y allows range of values
 // */X every of that value
 // (*) * * * * *
-cron.schedule("*/1 * * * *", async function () {
+cron.schedule("0 8 * * 1", async function () {
     let emails = await db_functions.getEmails(db);
     console.log(emails);
     if(emails.length > 0) {
