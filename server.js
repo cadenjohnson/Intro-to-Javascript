@@ -3,16 +3,17 @@ const HOST = process.env.host_address || "127.0.0.1"; // need way to simplify fo
 const PORT = process.env.PORT || 3500;
 
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
 const cron = require("node-cron");
-const cred = require("./utils/credentials.js");
-const get_content = require("./utils/get_content");
+//const cred = require("./utils/credentials.js");
 const send_mail = require("./utils/send_mail");
 const validate_email = require("./utils/validate_email");
 const db_functions = require("./utils/db_functions");
+
+const temp = require("./utils/credentials");
+const cred = temp.get_credentials();
 
 const app = express();
 
@@ -21,6 +22,8 @@ app.use(express.json({ limit: '1mb' }));
 // middleware to provide response for static and "other" requests
 app.use(express.static(path.join(__dirname, '/public')));
 
+/* --> for sqlite3 database solution for dev
+const sqlite3 = require('sqlite3').verbose();
 
 // Init database & check if db file exists
 if(!fs.existsSync('./users.db')) {
@@ -41,8 +44,14 @@ const db = new sqlite3.Database('./users.db', sqlite3.OPEN_READWRITE, (error) =>
 
 // create table if necessary
 db.run(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`);
+*/
 
-
+const { createClient } = require('@supabase/supabase-js');
+const db = createClient(
+    cred.supabase_url,
+    cred.anon_key
+);
+db.from('recipe_users').insert({name:'test', email:'test@gmail.com'});
 
 // first route for index
 app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify that starts with /, ends w / OR includes the whole shabang or without the file type
@@ -57,7 +66,7 @@ app.post('/', async (req, res) => {
     let validcheck = await validate_email(email);
     if(validcheck === true) {
         let results = await db_functions.getID(db, email);
-        if(results == undefined) {
+        if(results == undefined || results.length === 0) {
             db_functions.insertItems(db, name, email);
             logger.info(`${name} added to database`);
             res.sendStatus(200);
@@ -120,10 +129,11 @@ app.get('/*', (req, res) => {
 // X-Y allows range of values
 // */X every of that value
 // (*) * * * * *
-cron.schedule("0 0 * * 1", async function () {
+cron.schedule("*/1 * * * *", async function () {
     let emails = await db_functions.getEmails(db);
+    console.log(emails);
     if(emails.length > 0) {
-        await send_mail(db, cred.mailer_email(), emails);
+        await send_mail(db, cred.mailer_email, emails);
         logger.info(`${emails.length} emails successfully sent`);
     } else {
         logger.warn("No active users");

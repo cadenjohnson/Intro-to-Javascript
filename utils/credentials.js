@@ -1,33 +1,10 @@
 
-const fs = require('fs');
-
-if(fs.existsSync('../credentials.json')) {
-    const cred = require("../credentials.json");
-}
-
-
-exports.mailer_email = function(){
+exports.get_credentials = function(){
     if(process.env.mailer_email) {
-        return process.env.mailer_email;
+        return process.env;
     } else {
-        return cred.mailer_email;
+        const cred = require("../credentials.json");
+        return cred;
     }
 }
 
-
-exports.mailer_app_password = function(){
-    if(process.env.mailer_app_password) {
-        return process.env.mailer_app_password;
-    } else {
-        return cred.mailer_app_password;
-    }
-}
-
-
-exports.host_address = function(){
-    if(process.env.host_address) {
-        return process.env.host_address;
-    } else {
-        return cred.host_address;
-    }
-}

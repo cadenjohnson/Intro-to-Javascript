@@ -1,6 +1,7 @@
 
 const nodemailer = require("nodemailer");
-const cred = require("./credentials.js");
+const temp = require("./credentials");
+const cred = temp.get_credentials();
 const get_content = require("./get_content");
 const logger = require('./logger');
 const db_functions = require("./db_functions");
@@ -10,15 +11,15 @@ module.exports = async function sendEmails(db, source, emails) {
     let mailTransporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-            user: cred.mailer_email(),
-            pass: cred.mailer_app_password()
+            user: cred.mailer_email,
+            pass: cred.mailer_app_password
         }
     });
 
     // send the mail and confirm
     emails.forEach(async function (targetemail, i, array) {
         let acct = await db_functions.getID(db, targetemail);
-        let content = await get_content(cred.host_address(), acct.id);
+        let content = await get_content(cred.host_address, acct.id);
 
         let mailParams = {
             from: source,
