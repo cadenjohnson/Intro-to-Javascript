@@ -1,5 +1,5 @@
 
-const ORIGIN = 'https://seaview-app-zcioy.ondigitalocean.app/admin/'
+const ORIGIN = 'https://seaview-app-zcioy.ondigitalocean.app/'
 const msg = document.querySelector('.msg');
 const emails = document.querySelector('.emails');
 const email_content = document.getElementById("email-content");
