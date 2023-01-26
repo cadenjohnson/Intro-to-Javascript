@@ -1,5 +1,5 @@
 
-const ORIGIN = 'https://seaview-app-zcioy.ondigitalocean.app/admin/' 
+const ORIGIN = 'https://seaview-app-zcioy.ondigitalocean.app/' 
 
 const Form = document.querySelector('#my-form');
 const nameInput = document.querySelector('#username');
