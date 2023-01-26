@@ -15,5 +15,19 @@ npm install
 npm update
 
 - Necessary Environment Variables:
-mailer_email -----> email address of account used to send the emails
-mailer_app_password ------> app password given by the service for that account
+mailer_email
+mailer_app_password
+host_address
+anon_key
+supabase_url
+secret
+username
+password
+
+
+- reminder for prod - needs to be streamlined...
+change ORIGIN in:
+client.js
+adminlogin.js
+admin.js
+server.js

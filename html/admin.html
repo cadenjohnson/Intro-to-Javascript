@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>Admin Portal</title>
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body>
+        <header>
+        <h1>Welcome to the Admin Portal</h1>
+        </header>
+
+        <div style="display: flex; height: 70%; margin: 30px; padding: 15px;">
+            <div class="container" id="my-form" style="min-width: 250px; flex-grow: 2; padding: 1rem; margin: 15px; display: flex; align-items: center; flex-direction: column;">
+                <h3>Users</h3>
+                <br>
+                <div style="text-align:center;" class="emails"></div>
+            </div>
+
+            <form id="content-form" style="min-width: 500px; flex-grow: 8; padding: 1rem; margin: 15px; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                <h3>Email Content</h3>
+                <div style="text-align:center;" class="msg"></div>
+                <br>
+                <textarea id="email-content" name="email-content" style="width:90%; height:85%;"></textarea>
+                <br>
+                <input class="btn" type="submit" value="Update" style="width:60%;">
+            </form>
+
+        </div>
+
+
+        <div class="container" style="width: 100%; position: fixed; bottom: 0px; display: grid; place-items: center; padding: 1rem 2rem 2rem 2rem;">
+            <h2><a href="/logout">Log Out</a></h2>
+            <img style="max-width: 830px; margin:0 auto;" class="grayscale" src="//cdn.shopify.com/s/files/1/1616/6285/files/Logo-1238x100-68pt_eb6f77e2-e809-4356-935c-06a739ca4a3f_1000x.png?v=1620411158">
+            <p style="color:rgb(104, 104, 104)">Created and managed by Caden Johnson</p>
+        </div>
+
+        <script src="../admin.js"></script>
+    </body>
+</html>

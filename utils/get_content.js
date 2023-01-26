@@ -2,7 +2,7 @@
 const fs = require('fs');
 const logger = require('./logger');
 
-module.exports = async function formulateEmailContent(host_address, acct_id) {
+exports.formulateEmailContent = async function(host_address, acct_id) {
     return new Promise((resolve, reject) => {
         fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
             if(err){
@@ -24,6 +24,25 @@ module.exports = async function formulateEmailContent(host_address, acct_id) {
                     }
                 })
                 resolve([subject, body]);
+            }
+        })
+    })
+}
+
+exports.getContent = async function() {
+    return new Promise((resolve, reject) => {
+        fs.readFile('email_content/email_text.txt', 'utf-8', function(err, data){
+            if(err){
+                logger.error(`error retrieving email content - ${err}`);
+                reject(err);
+            } else {
+                let subject = '';
+                let body = '';
+                let lines = data.split('\n');
+                lines.forEach(function (line, i, array) {
+                    body+=(line+"\n");
+                })
+                resolve(body);
             }
         })
     })

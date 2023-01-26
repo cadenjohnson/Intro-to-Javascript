@@ -3,14 +3,16 @@ const HOST = process.env.host_address || "127.0.0.1"; // need way to simplify fo
 const PORT = process.env.PORT || 3500;
 
 const express = require('express');
+const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const logger = require('./utils/logger');
 const cron = require("node-cron");
-//const cred = require("./utils/credentials.js");
 const send_mail = require("./utils/send_mail");
 const validate_email = require("./utils/validate_email");
 const db_functions = require("./utils/db_functions");
+var session = require('express-session');
+const get_content = require('./utils/get_content');
 
 const temp = require("./utils/credentials");
 const cred = temp.get_credentials();
@@ -19,39 +21,23 @@ const app = express();
 
 // limits size
 app.use(express.json({ limit: '1mb' }));
+app.use(express.text({ limit: '1mb' }));
 // middleware to provide response for static and "other" requests
 app.use(express.static(path.join(__dirname, '/public')));
+// sets up session for logging in as admin
+app.use(session({secret: cred.secret, resave: false, saveUninitialized: true}));
+// for parsing the body of requests
+const urlencodedParser = bodyParser.urlencoded({ extended: false });
 
-/* --> for sqlite3 database solution for dev
-const sqlite3 = require('sqlite3').verbose();
 
-// Init database & check if db file exists
-if(!fs.existsSync('./users.db')) {
-    // if not, create
-    fs.writeFile('./users.db', '', (error) => {
-        if(error != null) {
-            logger.error(error);
-        }
-    });
-}
-
-// connect to db
-const db = new sqlite3.Database('./users.db', sqlite3.OPEN_READWRITE, (error) => {
-    if(error) {
-        logger.error(`Error creating new database - ${error}`);
-    }
-})
-
-// create table if necessary
-db.run(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name, email)`);
-*/
-
+// Configure and connect to database
 const { createClient } = require('@supabase/supabase-js');
 const db = createClient(
     cred.supabase_url,
     cred.anon_key
 );
-db.from('recipe_users').insert({name:'test', email:'test@gmail.com'});
+
+
 
 // first route for index
 app.get('/', (req, res) => {   // can also put '~/$|/index(.html)?' to signify that starts with /, ends w / OR includes the whole shabang or without the file type
@@ -88,11 +74,72 @@ app.get('/unsubscribe', (req, res) => {
 })
 
 
-// temp admin portal
+// admin portal routes
+app.get('/adminlogin', async (req, res) => {
+    res.sendFile(path.join(__dirname, 'html', 'adminlogin.html'));
+})
+
+app.post('/adminlogin', async (req, res) => {
+    if(req.body.username === cred.username && req.body.password === cred.password) {
+        session = req.session;
+        session.user = req.body.username;
+        res.redirect('/admin');
+    } else {
+        res.sendStatus(400);
+    }
+})
+
+app.get('/admin', async (req, res) => {
+    if(!req.session.user) {
+        res.status(401).send("Invalid Login Attempt");
+    } else {
+        res.sendFile(path.join(__dirname, 'html', 'admin.html'));
+    }
+})
+
+app.get('/logout', (req, res) => {
+    if(!req.session.user) {
+        res.status(401).send("Invalid Login Attempt");
+    } else {
+        req.session.destroy();
+        res.redirect('/');
+    }
+})
+
+app.get('/getemails', async (req, res) => {
+    if(!req.session.user) {
+        res.redirect('/');
+    } else {
+        let temp = await db_functions.getEmails(db);
+        temp = temp.slice(0,10);
+        res.send(JSON.stringify(temp));
+    }
+})
+
+app.get('/getemailcontent', async (req, res) => {
+    if(!req.session.user) {
+        res.redirect('/');
+    } else {
+        let temp = await get_content.getContent();
+        res.send(temp);
+    }
+})
+
+app.post('/getemailcontent', async (req, res) => {
+    if(!req.session.user) {
+        res.redirect('/');
+    } else {
+        // update email_content file
+        let new_content = req.body.content;
+        fs.writeFileSync('./email_content/email_text.txt', new_content, 'utf-8');
+        // respond with 200
+        res.sendStatus(200);
+    }
+})
+
 app.get('/adminpleaseonlytheadmin', async (req, res) => {
     res.send(await db_functions.getAlldata(db));
 })
-
 
 app.post('/adminpleaseonlytheadmin', async (req, res) => {
     res.redirect(301, '/newpage');

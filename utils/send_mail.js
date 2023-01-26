@@ -19,7 +19,7 @@ module.exports = async function sendEmails(db, source, emails) {
     // send the mail and confirm
     emails.forEach(async function (targetemail, i, array) {
         let acct = await db_functions.getID(db, targetemail);
-        let content = await get_content(cred.host_address, acct.id);
+        let content = await get_content.formulateEmailContent(cred.host_address, acct.id);
 
         let mailParams = {
             from: source,
